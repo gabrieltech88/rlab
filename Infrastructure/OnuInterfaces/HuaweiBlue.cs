@@ -1,0 +1,71 @@
+using Microsoft.Playwright;
+using RLab.Abstractions;
+
+namespace RLab.Infrastructure.OnuInterfaces;
+
+public class HuaweiBlue : IHuaweiBlue
+{
+    public string Model => throw new NotImplementedException();
+    public bool hasDigitalCertificate { get; } = true;
+
+    public async Task<bool> ConfigureAsync(string model, string ip)
+    {
+        using var playwright = await Playwright.CreateAsync();
+        await using var browser = await playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
+        {
+            Headless = false,
+            SlowMo = 100
+        });
+
+        var context = await browser.NewContextAsync(new BrowserNewContextOptions
+        {
+            IgnoreHTTPSErrors = true
+        });
+
+        var page = await context.NewPageAsync();
+
+        await page.GotoAsync($"http://{ip}");
+
+        // Login
+        await page.Locator("#txt_Username").FillAsync("Epadmin");
+        await page.Locator("#txt_Password").FillAsync("adminEp");
+        await page.Locator("#loginbutton").ClickAsync();
+        await page.WaitForLoadStateAsync(LoadState.DOMContentLoaded);
+        await page.Locator("#firstpage").ClickAsync();
+        await page.WaitForLoadStateAsync(LoadState.DOMContentLoaded);
+
+        await Task.Delay(3000);
+
+        await page.Locator("#addconfig").ClickAsync();
+        await page.Locator("#name_maintaininfo").ClickAsync();
+        await page.Locator("#cfgconfig").ClickAsync();
+
+
+        // Localizar frame de configuração
+        var frame = page.Frames.FirstOrDefault(f => f.Url.Contains("/html/ssmp/cfgfile/cfgfile.asp"));
+        if (frame is null)
+            throw new Exception("Frame de configuração não encontrado.");
+
+        await frame.Locator("#t_file").SetInputFilesAsync($"C:/Users/Rapid/Documents/Dev/RLab/Lib/{model}/{model}.xml");
+
+        page.Dialog += async (_, dialog) =>
+        {
+            await dialog.AcceptAsync();
+        };
+        await frame.Locator("#btnSubmit").ClickAsync();
+        await Task.Delay(5000);
+
+        await browser.CloseAsync();
+        return true;
+    }
+
+    public Task<bool> ChangeWlanAndPPPoE(string ip, int position)
+    {
+        throw new NotImplementedException();
+    }
+
+    public Task<bool> UploadDigitalCertificate(string ip)
+    {
+        throw new NotImplementedException();
+    }
+}

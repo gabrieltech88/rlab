@@ -70,3 +70,5 @@ appsettings.*.local.json
 
 Storage/
 Lib/
+TestResults/
+playwright-report/

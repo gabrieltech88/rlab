@@ -69,3 +69,4 @@ appsettings.*.local.json
 *.bak
 
 Storage/
+Lib/
